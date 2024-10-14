@@ -138,7 +138,51 @@ Find a list of admissions based on the searchString provided as parameter
 See assignment description for search specification
 '''
 def findAdmissionsByCriteria(searchString):
+# Connect Database
+    conn = openConnection()
+    if conn is None:
+        return None
+    
+    cursor = conn.cursor()
+    try:
+        # Use Cursor to find admission records that meet the criteria
+        query = '''
+            SELECT A.admissionid AS admission_id, 
+                   ATE.admissiontypename AS admission_type,
+                   D.deptname AS admission_department,
+                   COALESCE(TO_CHAR(A.dischargedate,'DD-MM-YYYY'),'') AS discharge_date,
+                   COALESCE(A.fee :: TEXT,'') AS fee,
+                   CONCAT(p.firstname, ' ', p.lastname) AS patient,
+                   COALESCE(A.condition,'') AS condition
+            FROM admission A
+            JOIN patient P ON A.patient = P.patientid
+            JOIN admissiontype ATE ON A.admissiontype = ATE.admissiontypeid
+            JOIN department D ON A.department = D.deptid
+            WHERE LOWER(ATE.admissiontypename) LIKE %s 
+               OR LOWER(D.deptname) LIKE %s 
+               OR LOWER(CONCAT(p.firstname, ' ', p.lastname)) LIKE %s 
+               OR LOWER(A.condition) LIKE %s
+            AND (A.dischargedate IS NULL OR A.dischargedate > CURRENT_DATE - INTERVAL '2 years')
+            ORDER BY A.dischargedate ASC NULLS FIRST,
+                     CONCAT(p.firstname, ' ', p.lastname) ASC
+        '''
+        searchString = f"%{searchString.lower()}%"
+        cursor.execute(query, (searchString, searchString, searchString, searchString))
+        rows = cursor.fetchall()
 
+        if not rows:
+            return None
+
+        attributes = [attr[0] for attr in cursor.description]
+        row_to_dict = [dict(zip(attributes, row)) for row in rows]
+        return row_to_dict
+
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error : " + sqle.pgerror)
+        return None
+    finally:
+        cursor.close()
+        conn.close()
     return
 
 
@@ -146,8 +190,38 @@ def findAdmissionsByCriteria(searchString):
 Add a new addmission 
 '''
 def addAdmission(type, department, patient, condition, admin):
-    
+     # Connect to Database
+    conn = openConnection()
+    if conn is None:
+        return False
+
+    cursor = conn.cursor()
+    try:
+        # Using nested SELECT statements to insert new admission records
+        query = '''
+            INSERT INTO admission (admissiontype, department, patient, condition, administrator)
+            VALUES (
+                (SELECT admissiontypeid FROM admissiontype WHERE LOWER(admissiontypename) = LOWER(%s)),
+                (SELECT deptid FROM department WHERE LOWER(deptname) = LOWER(%s)),
+                %s,
+                %s,
+                %s
+            );
+        '''
+        cursor.execute(query, (type, department, patient, condition, admin))
+        conn.commit()
+        print("Admission added successfully")
+        return True
+
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error: ", sqle.pgerror)
+        print("Error Details: ", sqle.diag.message_primary)
+        return False
+    finally:
+        cursor.close()
+        conn.close()
     return
+    
 
 
 '''
