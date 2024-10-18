@@ -78,7 +78,7 @@ CREATE table Admission (
 	FOREIGN KEY(Administrator) REFERENCES Administrator
 );
 
-SET datestyle = 'DMY';
+SET datestyle = 'ISO, DMY';
 
 INSERT INTO Admission (AdmissionType, Department, Fee, Patient, Administrator, DischargeDate, Condition) VALUES
     (4, 1, 666.00, 'lroberts', 'jdoe', '28/02/2024', 'a red patch on my skin that looks irritated. It started small but has been spreading and feels warm to the touch'),

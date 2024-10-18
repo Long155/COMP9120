@@ -227,7 +227,48 @@ def addAdmission(type, department, patient, condition, admin):
 '''
 Update an existing admission
 '''
-def updateAdmission(id, type, department, dischargeDate, fee, patient, condition):
+def updateAdmission(id, type, department, dischargeDate, fee, patient, condition): #可进一步增加容错性
+    conn = openConnection()
+    cursor = conn.cursor()
     
-
-    return
+    try:
+        if isinstance(type, str):#presume type is either str or int
+            print("***type is str!")
+            cursor.execute("SELECT AdmissionTypeID FROM AdmissionType WHERE LOWER(AdmissionTypeName) = LOWER(%s)", (type,))
+            admission_type_id = cursor.fetchone()
+            print("***admission_type_id = cursor.fetchone() =", admission_type_id)
+            if admission_type_id is None:
+                raise ValueError("Invalid Admission Type")
+            type = admission_type_id[0]
+        
+        
+        print(f"***department = {department}")
+        print("***fee=", fee)
+        if isinstance(department, str):
+            print("***department is str!")
+            cursor.execute("SELECT DeptId FROM Department WHERE LOWER(DeptName) = LOWER(%s)", (department,))
+            department_id = cursor.fetchone()
+            print("***department_id = cursor.fetchone() =", department_id)
+            if department_id is None:
+                raise ValueError("Invalid Department")
+            department = department_id[0]
+        
+        patient_lower = patient.lower()
+        cursor.execute("""
+            UPDATE Admission
+            SET AdmissionType = %s, Department = %s, DischargeDate = %s, Fee = %s, Patient = %s, Condition = %s
+            WHERE AdmissionID = %s
+        """, (int(type), int(department), dischargeDate, fee, patient_lower, condition, id))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+    except psycopg2.Error as e:
+        print("Error updating admission: ", e)
+        conn.rollback()
+        return False
+    except ValueError as ve:
+        print(ve)
+        return False
+    finally:
+        cursor.close()
+        conn.close()
