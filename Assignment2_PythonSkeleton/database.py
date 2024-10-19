@@ -190,25 +190,27 @@ def findAdmissionsByCriteria(searchString):
 Add a new addmission 
 '''
 def addAdmission(type, department, patient, condition, admin):
-     # Connect to Database
+  
+    # Connect to Database
     conn = openConnection()
     if conn is None:
         return False
 
     cursor = conn.cursor()
     try:
-        # Using nested SELECT statements to insert new admission records
-        query = '''
+       
+        query = ''' 
             INSERT INTO admission (admissiontype, department, patient, condition, administrator)
             VALUES (
                 (SELECT admissiontypeid FROM admissiontype WHERE LOWER(admissiontypename) = LOWER(%s)),
                 (SELECT deptid FROM department WHERE LOWER(deptname) = LOWER(%s)),
-                %s,
+                (SELECT patientid FROM patient WHERE LOWER(patientid) = LOWER(%s)),
                 %s,
                 %s
             );
         '''
-        cursor.execute(query, (type, department, patient, condition, admin))
+       
+        cursor.execute(query, (type.lower(), department.lower(), patient.lower(), condition, admin))
         conn.commit()
         print("Admission added successfully")
         return True
