@@ -55,7 +55,7 @@ def checkLogin(login, password):
             '''
                 SELECT username, firstname, lastname, email
                 FROM  administrator
-                WHERE username = %s And password = %s
+                WHERE LOWER(username) = LOWER(%s) And password = %s
             '''
             ,(login, password)
         )
