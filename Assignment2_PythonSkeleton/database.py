@@ -104,7 +104,7 @@ def findAdmissionsByAdmin(login):
                 JOIN patient P ON A.patient = P.patientid
                 Join admissiontype ATE ON A.admissiontype = ATE.admissiontypeid 
                 JOIN department D ON A.department = D.deptid
-                WHERE A.administrator = 'jdoe'
+                WHERE A.administrator = %s
                 ORDER BY A.dischargedate DESC NULLS LAST,
 		                 CONCAT(p.firstname,' ' ,p.lastname) ASC,
 		                 ATE.admissiontypename DESC
